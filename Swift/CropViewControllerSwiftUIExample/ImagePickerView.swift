@@ -13,11 +13,9 @@ public struct ImagePickerView: UIViewControllerRepresentable {
     private var croppingStyle = CropViewCroppingStyle.default
     private let sourceType: UIImagePickerController.SourceType
     private let onCanceled: () -> Void
-    private let onImagePicked: (UIImage) -> Void
+    private let onImagePicked: (UIImage?) -> Void
     
-    @Environment(\.presentationMode) private var presentationMode
-
-    public init(croppingStyle: CropViewCroppingStyle, sourceType: UIImagePickerController.SourceType, onCanceled: @escaping () -> Void, onImagePicked: @escaping (UIImage) -> Void) {
+    public init(croppingStyle: CropViewCroppingStyle, sourceType: UIImagePickerController.SourceType, onCanceled: @escaping () -> Void, onImagePicked: @escaping (UIImage?) -> Void) {
         self.croppingStyle = croppingStyle
         self.sourceType = sourceType
         self.onCanceled = onCanceled
@@ -42,7 +40,6 @@ public struct ImagePickerView: UIViewControllerRepresentable {
 
     public func makeCoordinator() -> Coordinator {
         Coordinator(
-            onDismiss: { self.presentationMode.wrappedValue.dismiss() },
             onCanceled: self.onCanceled,
             onImagePicked: self.onImagePicked
         )
@@ -50,26 +47,32 @@ public struct ImagePickerView: UIViewControllerRepresentable {
 
     final public class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
 
-        private let onDismiss: () -> Void
         private let onCanceled: () -> Void
-        private let onImagePicked: (UIImage) -> Void
+        private let onImagePicked: (UIImage?) -> Void
 
-        init(onDismiss: @escaping () -> Void, onCanceled: @escaping () -> Void, onImagePicked: @escaping (UIImage) -> Void) {
-            self.onDismiss = onDismiss
+        init(onCanceled: @escaping () -> Void, onImagePicked: @escaping (UIImage?) -> Void) {
             self.onCanceled = onCanceled
             self.onImagePicked = onImagePicked
         }
 
         public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            if let image = info[.originalImage] as? UIImage {
+            
+            guard let image = info[.originalImage] as? UIImage else {
+                picker.dismiss(animated: true) {
+                    self.onImagePicked(nil)
+                }
+                return
+            }
+            
+            picker.dismiss(animated: true) {
                 self.onImagePicked(image)
             }
-            self.onDismiss()
         }
         
-        public func imagePickerControllerDidCancel(_: UIImagePickerController) {
-            self.onCanceled()
-            self.onDismiss()
+        public func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true) {
+                self.onCanceled()
+            }
         }
     }
 }

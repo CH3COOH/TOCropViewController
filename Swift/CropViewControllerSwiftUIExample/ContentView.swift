@@ -75,11 +75,12 @@ struct ContentView: View {
                 ImagePickerView(croppingStyle: self.croppingStyle, sourceType: .photoLibrary, onCanceled: {
                     // on cancel
                 }) { (image) in
-                    self.originalImage = image
-                    self.currentSheet = .imageCrop
+                    guard let image = image else {
+                        return
+                    }
                     
-                    // Wait for 1 second as the screen cannot be closed by `dismiss()`
-                    DispatchQueue.main.asyncAfter(wallDeadline: .now() + .milliseconds(1000)) {
+                    self.originalImage = image
+                    DispatchQueue.main.async {
                         self.currentSheet = .imageCrop
                         self.sheetIsPresented = true
                     }
